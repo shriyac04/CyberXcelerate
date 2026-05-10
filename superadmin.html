@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAPE Superadmin | Reports</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+            background-color: rgba(30, 41, 59, 0.8);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Search & Filter */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            background-color: var(--bg-card);
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        /* Data Table */
+        .table-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(15, 23, 42, 0.5);
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+            position: relative;
+            padding-right: 2rem;
+        }
+
+        th.sortable:hover {
+            color: var(--text-main);
+        }
+
+        th.sortable::after {
+            content: '⇅';
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.3;
+            font-size: 0.7rem;
+        }
+
+        th.sortable.sort-asc::after {
+            content: '↑';
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        th.sortable.sort-desc::after {
+            content: '↓';
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 0.875rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hash-preview {
+            font-family: monospace;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .score-high {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .score-med {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .score-low {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .page-info {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .page-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            width: 94%;
+            max-width: 1100px;
+            max-height: 92vh;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* User Detail Modal Styles */
+        .user-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .user-stat-card {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 0.875rem 1rem;
+            text-align: center;
+        }
+
+        .user-stat-card .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .user-stat-card .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .user-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .user-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .user-section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-section-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .user-table-wrap {
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .user-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .user-table-wrap th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(4px);
+            font-size: 0.7rem;
+            padding: 0.6rem 0.75rem;
+        }
+
+        .user-table-wrap td {
+            padding: 0.55rem 0.75rem;
+            font-size: 0.8rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            word-break: break-all;
+        }
+
+        .user-table-wrap tr:last-child td {
+            border-bottom: none;
+        }
+
+        .user-table-wrap .agent-cell {
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .user-table-wrap .hash-cell {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-pill.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .status-pill.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .status-pill.failed {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .empty-state svg {
+            margin-bottom: 0.5rem;
+            opacity: 0.4;
+        }
+
+        .json-viewer {
+            background: #0d1117;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            color: #e6edf3;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Custom Scrollbars */
+
+        /* Date Picker Bar */
+        .date-picker-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+        }
+
+        .date-picker-bar label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .date-picker-bar input[type="date"] {
+            padding: 0.45rem 0.75rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .date-picker-bar input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .date-picker-bar input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.7);
+            cursor: pointer;
+        }
+
+        .date-picker-bar .btn-sm {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.4rem;
+        }
+
+        .date-picker-bar .selected-label {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 500;
+            margin-left: auto;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+
+        .user-table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .user-table-wrap::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.4);
+        }
+
+        /* Firefox scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .modal-body {
+            scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+        }
+    </style>
+    <script>
+        (function () {
+            try {
+                const token = localStorage.getItem('capeToken');
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    if (payload.role === 'student') {
+                        window.location.href = '/';
+                    }
+                }
+            } catch (e) {
+                // Ignore decoding errors
+            }
+        })();
+    </script>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">Superadmin</div>
+        <div class="nav-actions">
+            <div
+                style="display: flex; align-items: center; gap: 0.75rem; margin-right: 1rem; border-right: 1px solid var(--border); padding-right: 1.5rem;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Rate Limit (5/5hrs):</span>
+                <label style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0;">
+                    <input type="checkbox" id="rateLimitToggle" style="opacity: 0; width: 0; height: 0;">
+                    <span class="slider"
+                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); border-radius: 24px; transition: .3s;">
+                        <span class="slider-knob"
+                            style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .3s;"></span>
+                    </span>
+                </label>
+                <span id="rateLimitLabel"
+                    style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); min-width: 2rem;">OFF</span>
+            </div>
+            <button class="btn btn-outline" onclick="window.location.href='/'">Upload Interface</button>
+            <button class="btn btn-primary" id="refreshBtn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 1400px; margin: 0 auto; padding: 0 2rem;">
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; border-bottom: 1px solid var(--border);">
+            <button class="btn btn-outline" id="tabDashboard"
+                style="border-bottom: none; border-radius: 0.5rem 0.5rem 0 0; background: var(--bg-card); border-color: var(--border); color: var(--primary);">Dashboard</button>
+            <button class="btn btn-outline" id="tabReports"
+                style="border-bottom: none; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; color: var(--text-muted);">Reports</button>
+            <button class="btn btn-outline" id="tabUsers"
+                style="border-bottom: none; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; color: var(--text-muted);">Users</button>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <main class="main" id="viewDashboard" style="display: block;">
+        <div class="date-picker-bar">
+            <label>📅 View stats for:</label>
+            <input type="date" id="dashDatePicker">
+            <button class="btn btn-primary btn-sm" id="dashDateToday">Today</button>
+            <button class="btn btn-outline btn-sm" id="dashDateClear">Clear</button>
+            <span class="selected-label" id="dashDateLabel">Showing: Today</span>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="dashTotalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Submissions</div>
+                <div class="stat-value" id="dashTotalSubs">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" id="dashLoginsLabel">Logins Today</div>
+                <div class="stat-value" id="dashLoginsToday">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" id="dashSubsLabel">Submissions Today</div>
+                <div class="stat-value" id="dashSubsToday">-</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Main Chart -->
+            <div
+                style="background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border); border-radius: 1rem;">
+                <h3 style="margin-bottom: 1rem; color: var(--text-main);">Activity Trends (Last 30 Days)</h3>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="accitivityChart"></canvas>
+                </div>
+            </div>
+            <!-- Pie Chart -->
+            <div
+                style="background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border); border-radius: 1rem;">
+                <h3 style="margin-bottom: 1rem; color: var(--text-main);">File Types</h3>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="fileTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border); border-radius: 1rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--text-main);">Top Users</h3>
+            <div style="position: relative; height: 200px; width: 100%;">
+                <canvas id="topUsersChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <main class="main" id="viewReports" style="display: none;">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Reports</div>
+                <div class="stat-value" id="totalReports">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Index Name</div>
+                <div class="stat-value" id="indexName" style="font-size: 1.25rem; margin-top: 0.5rem;">-</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" class="search-input" id="searchInput"
+                    placeholder="Search by filename, SHA256, or MD5...">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>SHA256</th>
+                        <th>Score</th>
+                        <th>Analyzed At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="reportsTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 3rem;">
+                            <div class="loading-spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <div class="page-info">
+                    Showing <span id="pageStart">0</span> to <span id="pageEnd">0</span> of <span
+                        id="pageTotal">0</span> results
+                </div>
+                <div class="page-controls">
+                    <button class="btn btn-outline" id="prevBtn" disabled>Previous</button>
+                    <button class="btn btn-outline" id="nextBtn" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main class="main" id="viewUsers" style="display: none;">
+        <div class="controls">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" class="search-input" id="usersSearchInput"
+                    placeholder="Search by username, role, or Task ID...">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="username">Username</th>
+                        <th class="sortable" data-sort="role">Role</th>
+                        <th class="sortable" data-sort="joinedAt">Joined</th>
+                        <th class="sortable" data-sort="lastLogin">Last Login</th>
+                        <th class="sortable" data-sort="totalLogins">Total Logins</th>
+                        <th class="sortable" data-sort="totalSubmissions">Total Submissions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem;">
+                            <div class="loading-spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Report Detail Modal -->
+    <div class="modal-backdrop" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Report Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentPage = 1;
+        let currentLimit = 20;
+        let totalItems = 0;
+        let searchQuery = '';
+
+        // Elements
+        const tableBody = document.getElementById('reportsTableBody');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const searchInput = document.getElementById('searchInput');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const totalReportsEl = document.getElementById('totalReports');
+        const indexNameEl = document.getElementById('indexName');
+        const pageStartEl = document.getElementById('pageStart');
+        const pageEndEl = document.getElementById('pageEnd');
+        const pageTotalEl = document.getElementById('pageTotal');
+        const detailModal = document.getElementById('detailModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+
+        // Auth Token (reuse from main app)
+        function getToken() { return localStorage.getItem('capeToken') || ''; }
+
+        // Fetch Stats
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/es/stats', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch stats');
+                const data = await res.json();
+                totalReportsEl.textContent = data.count.toLocaleString();
+                indexNameEl.textContent = data.index;
+            } catch (err) {
+                console.error(err);
+                totalReportsEl.textContent = 'Error';
+            }
+        }
+
+        // Fetch Reports
+        async function fetchReports() {
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem;"><div class="loading-spinner"></div></td></tr>`;
+
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    limit: currentLimit,
+                    q: searchQuery
+                });
+
+                const res = await fetch(`/api/es/reports?${params}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+
+                if (res.status === 401) {
+                    alert('Please login first via the main interface.');
+                    window.location.href = '/';
+                    return;
+                }
+
+                if (!res.ok) throw new Error('Failed to fetch reports');
+
+                const data = await res.json();
+                renderTable(data.data);
+                updatePagination(data);
+            } catch (err) {
+                console.error(err);
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">Failed to load reports. Check console/logs.</td></tr>`;
+            }
+        }
+
+        // Render Table
+        function renderTable(reports) {
+            if (reports.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">No reports found.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = reports.map(r => {
+                const filename = r.target?.file?.name || 'Unknown';
+                const sha256 = r.target?.file?.sha256 || 'N/A';
+                const score = r.info?.score || 0;
+                const timestamp = r.info?.started || '';
+                const dateStr = timestamp || 'N/A';
+
+                let scoreClass = 'score-low';
+                if (score >= 7) scoreClass = 'score-high';
+                else if (score >= 4) scoreClass = 'score-med';
+
+                return `
+                    <tr style="cursor: pointer;" onclick="openReport('${r.id}')">
+                        <td>
+                            <div class="file-name">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                ${escapeHtml(filename)}
+                            </div>
+                        </td>
+                        <td><span class="hash-preview" title="${sha256}">${sha256.substring(0, 12)}...</span></td>
+                        <td><span class="score-badge ${scoreClass}">${score}</span></td>
+                        <td>${dateStr}</td>
+                        <td>
+                            <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update Pagination
+        function updatePagination(data) {
+            totalItems = data.total;
+            const start = (currentPage - 1) * currentLimit + 1;
+            const end = Math.min(currentPage * currentLimit, totalItems);
+
+            pageStartEl.textContent = totalItems === 0 ? 0 : start;
+            pageEndEl.textContent = end;
+            pageTotalEl.textContent = totalItems;
+
+            const totalPages = Math.ceil(totalItems / currentLimit);
+            const pageControls = document.querySelector('.page-controls');
+            pageControls.innerHTML = '';
+
+            // Previous Button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn btn-outline';
+            prevBtn.textContent = 'Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchReports();
+                }
+            };
+            pageControls.appendChild(prevBtn);
+
+            // Page Numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                addPageButton(1, pageControls);
+                if (startPage > 2) {
+                    const span = document.createElement('span');
+                    span.textContent = '...';
+                    span.style.padding = '0.5rem';
+                    span.style.color = 'var(--text-muted)';
+                    pageControls.appendChild(span);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                addPageButton(i, pageControls);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const span = document.createElement('span');
+                    span.textContent = '...';
+                    span.style.padding = '0.5rem';
+                    span.style.color = 'var(--text-muted)';
+                    pageControls.appendChild(span);
+                }
+                addPageButton(totalPages, pageControls);
+            }
+
+            // Next Button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn btn-outline';
+            nextBtn.textContent = 'Next';
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    fetchReports();
+                }
+            };
+            pageControls.appendChild(nextBtn);
+        }
+
+        function addPageButton(page, container) {
+            const btn = document.createElement('button');
+            btn.className = `btn ${page === currentPage ? 'btn-primary' : 'btn-outline'}`;
+            btn.textContent = page;
+            btn.style.minWidth = '2.5rem';
+            btn.style.padding = '0.5rem';
+            btn.onclick = () => {
+                if (page !== currentPage) {
+                    currentPage = page;
+                    fetchReports();
+                }
+            };
+            container.appendChild(btn);
+        }
+
+        // Open Report Details
+        async function openReport(id) {
+            detailModal.classList.add('active');
+            modalContent.innerHTML = '<div class="loading-spinner"></div>';
+            modalTitle.textContent = 'Loading...';
+
+            try {
+                const res = await fetch(`/api/es/reports/${id}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch report details');
+                const data = await res.json();
+
+                modalTitle.textContent = data.target?.file?.name || 'Report Details';
+                modalContent.innerHTML = `
+                    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
+                         <button class="btn btn-primary" onclick="window.open('/visualiser.html?report_id=${id}&es=true', '_blank')">Open Visualiser</button>
+                    </div>
+                    <div class="json-viewer">${escapeHtml(JSON.stringify(data, null, 2))}</div>
+                `;
+            } catch (err) {
+                modalContent.innerHTML = `<div style="color: var(--danger);">Error: ${err.message}</div>`;
+            }
+        }
+
+        function closeModal() {
+            detailModal.classList.remove('active');
+        }
+
+        // Utils
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        let debounceTimer;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchQuery = e.target.value;
+                currentPage = 1;
+                fetchReports();
+            }, 300);
+        });
+
+        refreshBtn.addEventListener('click', () => {
+            fetchStats();
+            fetchReports();
+            fetchRateLimitStatus();
+        });
+
+        // Rate Limit Toggle Logic
+        const rateLimitToggle = document.getElementById('rateLimitToggle');
+        const rateLimitLabel = document.getElementById('rateLimitLabel');
+        const sliderKnob = rateLimitToggle.nextElementSibling.querySelector('.slider-knob');
+        const sliderBg = rateLimitToggle.nextElementSibling;
+
+        function updateRateLimitUI(enabled) {
+            rateLimitToggle.checked = enabled;
+            if (enabled) {
+                sliderBg.style.backgroundColor = 'var(--primary)';
+                sliderKnob.style.transform = 'translateX(20px)';
+                rateLimitLabel.textContent = 'ON';
+                rateLimitLabel.style.color = 'var(--primary)';
+            } else {
+                sliderBg.style.backgroundColor = 'var(--border)';
+                sliderKnob.style.transform = 'translateX(0)';
+                rateLimitLabel.textContent = 'OFF';
+                rateLimitLabel.style.color = 'var(--text-muted)';
+            }
+        }
+
+        async function fetchRateLimitStatus() {
+            try {
+                const res = await fetch('/api/admin/restriction-status', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    updateRateLimitUI(data.enabled);
+                }
+            } catch (err) {
+                console.error('Failed to fetch rate limit status', err);
+            }
+        }
+
+        rateLimitToggle.addEventListener('change', async (e) => {
+            // Revert UI optimistically, we'll update it based on server response
+            e.preventDefault();
+            const wasEnabled = !e.target.checked;
+            updateRateLimitUI(wasEnabled);
+
+            try {
+                const res = await fetch('/api/admin/toggle-restriction', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    updateRateLimitUI(data.enabled);
+                    showToast(`Rate limit ${data.enabled ? 'enabled' : 'disabled'}`, 'success');
+                } else {
+                    throw new Error('Failed to toggle');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to toggle rate limit', 'error');
+            }
+        });
+
+        // Tabs
+        const tabDashboard = document.getElementById('tabDashboard');
+        const tabReports = document.getElementById('tabReports');
+        const tabUsers = document.getElementById('tabUsers');
+
+        const viewDashboard = document.getElementById('viewDashboard');
+        const viewReports = document.getElementById('viewReports');
+        const viewUsers = document.getElementById('viewUsers');
+
+        const usersTableBody = document.getElementById('usersTableBody');
+        const usersSearchInput = document.getElementById('usersSearchInput');
+        let currentTab = 'dashboard';
+
+        // Users tab state
+        let allUsersData = [];
+        let usersSortKey = 'lastLogin';
+        let usersSortDir = 'desc';
+        let usersSearchQuery = '';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            // Reset styles
+            [tabDashboard, tabReports, tabUsers].forEach(t => {
+                t.style.background = 'transparent';
+                t.style.borderColor = 'transparent';
+                t.style.color = 'var(--text-muted)';
+            });
+            [viewDashboard, viewReports, viewUsers].forEach(v => v.style.display = 'none');
+
+            // Set active
+            const activeTab = tab === 'dashboard' ? tabDashboard : (tab === 'reports' ? tabReports : tabUsers);
+            const activeView = tab === 'dashboard' ? viewDashboard : (tab === 'reports' ? viewReports : viewUsers);
+
+            activeTab.style.background = 'var(--bg-card)';
+            activeTab.style.borderColor = 'var(--border)';
+            activeTab.style.color = 'var(--primary)';
+            activeView.style.display = 'block';
+
+            if (tab === 'reports') fetchReports();
+            if (tab === 'users') fetchUsers();
+            if (tab === 'dashboard') fetchDashboard();
+        }
+
+        tabDashboard.onclick = () => switchTab('dashboard');
+        tabReports.onclick = () => switchTab('reports');
+        tabUsers.onclick = () => switchTab('users');
+
+        // Charts Instances
+        let activityChartInstance = null;
+        let fileTypeChartInstance = null;
+        let topUsersChartInstance = null;
+
+        let selectedDashDate = ''; // '' means today
+
+        const dashDatePicker = document.getElementById('dashDatePicker');
+        const dashDateLabel = document.getElementById('dashDateLabel');
+        const dashLoginsLabel = document.getElementById('dashLoginsLabel');
+        const dashSubsLabel = document.getElementById('dashSubsLabel');
+
+        // Set date picker max to today
+        dashDatePicker.max = new Date().toISOString().split('T')[0];
+
+        dashDatePicker.addEventListener('change', () => {
+            selectedDashDate = dashDatePicker.value;
+            fetchDashboard();
+        });
+
+        document.getElementById('dashDateToday').addEventListener('click', () => {
+            selectedDashDate = '';
+            dashDatePicker.value = '';
+            fetchDashboard();
+        });
+
+        document.getElementById('dashDateClear').addEventListener('click', () => {
+            selectedDashDate = '';
+            dashDatePicker.value = '';
+            fetchDashboard();
+        });
+
+        async function fetchDashboard() {
+            try {
+                const params = selectedDashDate ? `?date=${selectedDashDate}` : '';
+                const res = await fetch(`/api/admin/dashboard-stats${params}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch stats');
+                const data = await res.json();
+                renderDashboard(data);
+            } catch (err) {
+                console.error('Dashboard error:', err);
+            }
+        }
+
+        function renderDashboard(data) {
+            // Update date label
+            const label = data.summary.dateLabel;
+            const isToday = label === 'today';
+            dashDateLabel.textContent = isToday ? 'Showing: Today' : `Showing: ${label}`;
+            dashLoginsLabel.textContent = isToday ? 'Logins Today' : `Logins on ${label}`;
+            dashSubsLabel.textContent = isToday ? 'Submissions Today' : `Submissions on ${label}`;
+
+            // Update Summary
+            document.getElementById('dashTotalUsers').textContent = data.summary.totalUsers;
+            document.getElementById('dashTotalSubs').textContent = data.summary.totalSubmissions;
+            document.getElementById('dashLoginsToday').textContent = data.summary.loginsOnDate;
+            document.getElementById('dashSubsToday').textContent = data.summary.submissionsOnDate;
+
+            // Chart Config
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.borderColor = '#334155';
+
+            // 1. Activity Chart (Line)
+            const ctxActivity = document.getElementById('accitivityChart').getContext('2d');
+
+            // Prepare labels (last 30 days)
+            const labels = [];
+            const loginData = [];
+            const subData = [];
+
+            // Map data to dates (simple approach: merge sorted arrays)
+            const mapData = (arr) => {
+                const m = {};
+                arr.forEach(i => m[i._id] = i.count);
+                return m;
+            };
+            const loginMap = mapData(data.timeline.logins);
+            const subMap = mapData(data.timeline.submissions);
+
+            // Generate last 30 days
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const iso = d.toISOString().split('T')[0];
+                labels.push(iso);
+                loginData.push(loginMap[iso] || 0);
+                subData.push(subMap[iso] || 0);
+            }
+
+            if (activityChartInstance) activityChartInstance.destroy();
+            activityChartInstance = new Chart(ctxActivity, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Logins', data: loginData, borderColor: '#6366f1', tension: 0.4 },
+                        { label: 'Submissions', data: subData, borderColor: '#ec4899', tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 2. File Types (Doughnut)
+            const ctxFile = document.getElementById('fileTypeChart').getContext('2d');
+            if (fileTypeChartInstance) fileTypeChartInstance.destroy();
+            fileTypeChartInstance = new Chart(ctxFile, {
+                type: 'doughnut',
+                data: {
+                    labels: data.fileTypes.map(f => f._id),
+                    datasets: [{
+                        data: data.fileTypes.map(f => f.count),
+                        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 3. Top Users (Bar)
+            const ctxTop = document.getElementById('topUsersChart').getContext('2d');
+            if (topUsersChartInstance) topUsersChartInstance.destroy();
+            topUsersChartInstance = new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                    labels: data.topUsers.map(u => u._id),
+                    datasets: [{
+                        label: 'Submissions',
+                        data: data.topUsers.map(u => u.count),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+
+        async function fetchUsers() {
+            usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 3rem;"><div class="loading-spinner"></div></td></tr>`;
+            try {
+                const res = await fetch('/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch users');
+                allUsersData = await res.json();
+                applyUsersFilterAndSort();
+            } catch (err) {
+                console.error(err);
+                usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">Failed to load users.</td></tr>`;
+            }
+        }
+
+        function applyUsersFilterAndSort() {
+            let filtered = allUsersData;
+
+            // Filter
+            if (usersSearchQuery) {
+                const q = usersSearchQuery.toLowerCase();
+                filtered = filtered.filter(u =>
+                    (u.username || '').toLowerCase().includes(q) ||
+                    (u.role || '').toLowerCase().includes(q)
+                );
+            }
+
+            // Sort
+            filtered = [...filtered].sort((a, b) => {
+                let valA = a[usersSortKey];
+                let valB = b[usersSortKey];
+
+                // Handle dates
+                if (usersSortKey === 'joinedAt' || usersSortKey === 'lastLogin') {
+                    valA = valA ? new Date(valA).getTime() : 0;
+                    valB = valB ? new Date(valB).getTime() : 0;
+                }
+                // Handle numbers
+                else if (usersSortKey === 'totalLogins' || usersSortKey === 'totalSubmissions') {
+                    valA = Number(valA) || 0;
+                    valB = Number(valB) || 0;
+                }
+                // Handle strings
+                else {
+                    valA = String(valA || '').toLowerCase();
+                    valB = String(valB || '').toLowerCase();
+                }
+
+                if (valA < valB) return usersSortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return usersSortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderUsers(filtered);
+            updateSortIndicators();
+        }
+
+        function updateSortIndicators() {
+            document.querySelectorAll('#viewUsers th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === usersSortKey) {
+                    th.classList.add(usersSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+        }
+
+        // Sort click handlers
+        document.querySelectorAll('#viewUsers th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort;
+                if (usersSortKey === key) {
+                    usersSortDir = usersSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    usersSortKey = key;
+                    usersSortDir = 'asc';
+                }
+                applyUsersFilterAndSort();
+            });
+        });
+
+        // Users search (supports Task ID lookup)
+        let usersDebounceTimer;
+        let taskIdLookupInProgress = false;
+        usersSearchInput.addEventListener('input', (e) => {
+            clearTimeout(usersDebounceTimer);
+            usersDebounceTimer = setTimeout(() => {
+                const val = e.target.value.trim();
+                usersSearchQuery = val;
+                applyUsersFilterAndSort();
+            }, 250);
+        });
+
+        // Handle Enter key for Task ID lookup
+        usersSearchInput.addEventListener('keydown', async (e) => {
+            if (e.key !== 'Enter') return;
+            const val = usersSearchInput.value.trim();
+            if (!val || !/^\d+$/.test(val) || taskIdLookupInProgress) return;
+
+            // Looks like a Task ID — do a lookup
+            taskIdLookupInProgress = true;
+            try {
+                const res = await fetch(`/api/admin/submission-lookup/${val}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.error || `No submission found for Task ID ${val}`, 'warning');
+                    return;
+                }
+                const data = await res.json();
+                showToast(`Task #${data.taskId} submitted by ${data.username} (${data.filename})`, 'success');
+                // Open that user's detail modal
+                openUser(data.username);
+            } catch (err) {
+                showToast('Failed to look up Task ID', 'error');
+            } finally {
+                taskIdLookupInProgress = false;
+            }
+        });
+
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'var(--success)',
+                warning: 'var(--warning)',
+                error: 'var(--danger)',
+                info: 'var(--primary)'
+            };
+            toast.style.cssText = `
+                position: fixed; bottom: 2rem; right: 2rem; z-index: 200;
+                padding: 0.85rem 1.25rem; border-radius: 0.75rem;
+                background: var(--bg-card); border: 1px solid ${colors[type] || colors.info};
+                color: var(--text-main); font-size: 0.85rem;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                display: flex; align-items: center; gap: 0.5rem;
+                animation: toastSlideIn 0.3s ease-out;
+                max-width: 500px;
+            `;
+            toast.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${colors[type] || colors.info};flex-shrink:0;"></span>${escapeHtml(message)}`;
+            document.body.appendChild(toast);
+
+            // Add animation keyframes if not present
+            if (!document.getElementById('toastStyles')) {
+                const style = document.createElement('style');
+                style.id = 'toastStyles';
+                style.textContent = `
+                    @keyframes toastSlideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes toastSlideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function renderUsers(users) {
+            if (users.length === 0) {
+                usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No users found.</td></tr>`;
+                return;
+            }
+            usersTableBody.innerHTML = users.map(u => `
+                <tr style="cursor: pointer;" onclick="openUser('${u.username}')">
+                    <td><span style="font-weight: 500; color: var(--text-main);">${escapeHtml(u.username)}</span></td>
+                    <td><span style="padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,0.1); font-size: 0.75rem;">${u.role}</span></td>
+                    <td>${u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : '-'}</td>
+                    <td>${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '-'}</td>
+                    <td>${u.totalLogins}</td>
+                    <td>${u.totalSubmissions}</td>
+                    <td><button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Details</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function openUser(username) {
+            detailModal.classList.add('active');
+            modalContent.innerHTML = '<div class="loading-spinner" style="margin: 2rem auto;"></div>';
+            modalTitle.textContent = `User: ${username}`;
+
+            try {
+                const res = await fetch(`/api/admin/users/${username}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch user details');
+                const data = await res.json();
+
+                // Build summary cards
+                const userInfo = data.user || {};
+                const roleBg = userInfo.role === 'admin' ? 'rgba(99,102,241,0.15)' : 'rgba(236,72,153,0.15)';
+                const roleColor = userInfo.role === 'admin' ? 'var(--primary)' : 'var(--secondary)';
+                const joinedStr = (userInfo.createdAt || userInfo.joinedAt) ? new Date(userInfo.createdAt || userInfo.joinedAt).toLocaleDateString() : '-';
+                const lastLoginStr = userInfo.lastLogin ? new Date(userInfo.lastLogin).toLocaleString() : '-';
+
+                // Build login rows
+                let loginRows = '';
+                if (data.loginHistory.length === 0) {
+                    loginRows = `<tr><td colspan="3"><div class="empty-state">
+                        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>No login history</div>
+                    </div></td></tr>`;
+                } else {
+                    loginRows = data.loginHistory.map(l => `
+                        <tr>
+                            <td style="white-space: nowrap;">${new Date(l.timestamp).toLocaleString()}</td>
+                            <td style="font-family: monospace; font-size: 0.75rem;">${(l.ip || '').replace(/^::ffff:/i, '')}</td>
+                            <td class="agent-cell" title="${escapeHtml(l.userAgent || '-')}">${escapeHtml(l.userAgent || '-')}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Build submission rows
+                let subRows = '';
+                if (data.submissions.length === 0) {
+                    subRows = `<tr><td colspan="4"><div class="empty-state">
+                        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <div>No submissions</div>
+                    </div></td></tr>`;
+                } else {
+                    subRows = data.submissions.map(s => {
+                        let statusClass = 'success';
+                        const st = (s.status || '').toLowerCase();
+                        if (st.includes('pend') || st.includes('process')) statusClass = 'pending';
+                        else if (st.includes('fail') || st.includes('error')) statusClass = 'failed';
+                        return `
+                            <tr>
+                                <td><span style="font-family: monospace; font-size: 0.75rem; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 600;">#${escapeHtml(s.taskId || '-')}</span></td>
+                                <td style="white-space: nowrap;">${new Date(s.timestamp).toLocaleString()}</td>
+                                <td class="hash-cell">${escapeHtml(s.filename)}</td>
+                                <td><span class="status-pill ${statusClass}">${escapeHtml(s.status)}</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                modalContent.innerHTML = `
+                    <!-- User Summary Cards -->
+                    <div class="user-summary-grid">
+                        <div class="user-stat-card">
+                            <div class="label">Role</div>
+                            <div class="value" style="color: ${roleColor};"><span style="background: ${roleBg}; padding: 2px 10px; border-radius: 99px; font-size: 0.8rem;">${escapeHtml(userInfo.role || 'student')}</span></div>
+                        </div>
+                        <div class="user-stat-card">
+                            <div class="label">Joined</div>
+                            <div class="value" style="font-size: 0.9rem;">${joinedStr}</div>
+                        </div>
+                        <div class="user-stat-card">
+                            <div class="label">Last Login</div>
+                            <div class="value" style="font-size: 0.85rem;">${lastLoginStr}</div>
+                        </div>
+                        <div class="user-stat-card">
+                            <div class="label">Total Logins</div>
+                            <div class="value" style="color: var(--primary);">${data.loginHistory.length}</div>
+                        </div>
+                        <div class="user-stat-card">
+                            <div class="label">Total Submissions</div>
+                            <div class="value" style="color: var(--secondary);">${data.submissions.length}</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Logins -->
+                    <div class="user-section">
+                        <div class="user-section-title">
+                            <span class="dot" style="background: var(--primary);"></span>
+                            <span style="color: var(--primary);">Recent Logins</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400; margin-left: auto;">${data.loginHistory.length} entries</span>
+                        </div>
+                        <div class="user-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="min-width: 150px;">Time</th>
+                                        <th style="min-width: 130px;">IP Address</th>
+                                        <th style="min-width: 200px;">User Agent</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${loginRows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Submissions -->
+                    <div class="user-section">
+                        <div class="user-section-title">
+                            <span class="dot" style="background: var(--secondary);"></span>
+                            <span style="color: var(--secondary);">Recent Submissions</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400; margin-left: auto;">${data.submissions.length} entries</span>
+                        </div>
+                        <div class="user-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="min-width: 80px;">Task ID</th>
+                                        <th style="min-width: 150px;">Time</th>
+                                        <th style="min-width: 200px;">Filename</th>
+                                        <th style="min-width: 80px;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${subRows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                modalContent.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 2rem;">Error: ${err.message}</div>`;
+            }
+        }
+
+        // Close modal on backdrop click
+        detailModal.addEventListener('click', (e) => {
+            if (e.target === detailModal) closeModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && detailModal.classList.contains('active')) {
+                closeModal();
+            }
+        });
+
+        // Init
+        // fetchStats();
+        // fetchReports(); 
+        // Initial load handled by default switchTab in script start
+        switchTab('dashboard');
+        fetchRateLimitStatus();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "reports/*",
+    "logs/*",
+    "*.log",
+    "node_modules/*",
+    "test_*.js"
+  ],
+  "watch": ["server.js", ".env"],
+  "ext": "js,json,env"
+}

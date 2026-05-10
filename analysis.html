@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis - CAPE</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background:#f5f7fb; margin:0; }
+        .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.06); position:sticky; top:0; z-index:5; }
+        .title { font-size:18px; font-weight:700; color:#333; }
+        .container { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+        .card { background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.06); padding:20px; margin-bottom:16px; }
+        .actions { display:flex; gap:10px; flex-wrap:wrap; }
+        button { padding:10px 14px; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
+        .btn-primary { background:#667eea; color:#fff; }
+        .btn-secondary { background:#764ba2; color:#fff; }
+        pre { background:#f0f0f0; padding:12px; border-radius:8px; overflow:auto; max-height:60vh; }
+        .muted { color:#666; font-size:13px; }
+        a { color:#667eea; text-decoration:none; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="title">CAPE Analysis</div>
+        <div>
+            <a href="index.html">Back to Uploads</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="muted">Task ID</div>
+            <div id="taskIdDisplay" style="font-weight:700; color:#333; margin-bottom:12px;">-</div>
+            <div class="actions">
+                <button id="btnViewIocs" class="btn-primary">View IoCs</button>
+                <button id="btnDownloadScreens" class="btn-secondary">Download Screenshots</button>
+                <button id="btnViewReport" class="btn-primary">View Report</button>
+                <button id="btnViewRawReport" class="btn-secondary">View Raw Report</button>
+                <button id="btnDownloadReport" class="btn-primary">Download Report</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="muted" style="margin-bottom:8px;">IoCs</div>
+            <pre id="iocsOutput">Click "View IoCs" to load indicators.</pre>
+            <pre id="reportOutput">Click "View Report" to load report.</pre>
+        </div>
+    </div>
+
+    <script>
+        function getToken() { return localStorage.getItem('capeToken') || ''; }
+        const params = new URLSearchParams(window.location.search);
+        const taskId = params.get('taskId');
+        const taskIdDisplay = document.getElementById('taskIdDisplay');
+        const iocsOutput = document.getElementById('iocsOutput');
+        const reportOutput = document.getElementById('reportOutput');
+        const btnViewIocs = document.getElementById('btnViewIocs');
+        const btnDownloadScreens = document.getElementById('btnDownloadScreens');
+        const btnViewReport = document.getElementById('btnViewReport');
+        const btnViewRawReport = document.getElementById('btnViewRawReport');
+        const btnDownloadReport = document.getElementById('btnDownloadReport');
+
+        if (!taskId) {
+            taskIdDisplay.textContent = 'Unknown';
+        } else {
+            taskIdDisplay.textContent = taskId;
+        }
+
+        function requireToken() {
+            const t = getToken();
+            if (!t) {
+                alert('Please login on the main page to access analysis.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            return t;
+        }
+
+        btnViewIocs.addEventListener('click', async () => {
+            if (!taskId) return;
+            const token = requireToken();
+            if (!token) return;
+            try {
+                const resp = await fetch(`/api/task/${taskId}/iocs`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await resp.json();
+                if (!resp.ok) { iocsOutput.textContent = JSON.stringify(data, null, 2); return; }
+                iocsOutput.textContent = JSON.stringify(data, null, 2);
+            } catch (e) { iocsOutput.textContent = 'Error: ' + e.message; }
+        });
+
+        btnDownloadScreens.addEventListener('click', async () => {
+            if (!taskId) return;
+            const token = requireToken();
+            if (!token) return;
+            try {
+                const resp = await fetch(`/api/task/${taskId}/screenshots`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!resp.ok) { const tx = await resp.text(); alert('Download failed: ' + tx); return; }
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `screenshots_${taskId}.zip`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            } catch (e) { alert('Download error: ' + e.message); }
+        });
+
+        // View Report — fetch report JSON and POST to cape_reports_explorer.py (port 9000)
+        btnViewReport.addEventListener('click', async () => {
+            if (!taskId) return;
+            const token = requireToken();
+            if (!token) return;
+            btnViewReport.textContent = 'Loading...';
+            btnViewReport.disabled = true;
+            try {
+                const resp = await fetch(`/api/task/${taskId}/report`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!resp.ok) { alert('Failed to fetch report'); return; }
+                const blob = await resp.blob();
+                // Build a multipart form and submit to the CAPE Explorer on port 9000
+                const explorerUrl = window.location.protocol + '//' + window.location.hostname + ':9000';
+                const formData = new FormData();
+                formData.append('jsonfile', new File([blob], `report_${taskId}.json`, { type: 'application/json' }));
+                await fetch(explorerUrl + '/upload', { method: 'POST', body: formData });
+                // Open the explorer in a new tab
+                window.open(explorerUrl, '_blank');
+            } catch (e) { alert('Error: ' + e.message); }
+            finally { btnViewReport.textContent = 'View Report'; btnViewReport.disabled = false; }
+        });
+
+        // View Raw Report — show raw JSON inline
+        btnViewRawReport.addEventListener('click', async () => {
+            if (!taskId) return;
+            const token = requireToken();
+            if (!token) return;
+            try {
+                const resp = await fetch(`/api/task/${taskId}/report`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!resp.ok) { reportOutput.textContent = 'Failed to fetch report'; return; }
+                const data = await resp.json();
+                reportOutput.textContent = JSON.stringify(data, null, 2);
+            } catch (e) { reportOutput.textContent = 'Error: ' + e.message; }
+        });
+
+        btnDownloadReport.addEventListener('click', async () => {
+            if (!taskId) return;
+            const token = requireToken();
+            if (!token) return;
+            try {
+                const resp = await fetch(`/api/task/${taskId}/report`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!resp.ok) { const tx = await resp.text(); alert('Download failed: ' + tx); return; }
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `report_${taskId}`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            } catch (e) { alert('Download error: ' + e.message); }
+        });
+    </script>
+</body>
+</html>
+
+
